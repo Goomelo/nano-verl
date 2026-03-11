@@ -1,0 +1,10 @@
+{"id":"math-001","prompt":"What is 7 + 5?","task_type":"math","reference_answer":"12"}
+{"id":"math-002","prompt":"What is 9 * 3?","task_type":"math","reference_answer":"27"}
+{"id":"math-003","prompt":"What is 14 - 6?","task_type":"math","reference_answer":"8"}
+{"id":"math-004","prompt":"What is 8 + 11?","task_type":"math","reference_answer":"19"}
+{"id":"math-005","prompt":"What is 6 * 7?","task_type":"math","reference_answer":"42"}
+{"id":"math-006","prompt":"What is 15 - 9?","task_type":"math","reference_answer":"6"}
+{"id":"math-007","prompt":"What is 12 + 13?","task_type":"math","reference_answer":"25"}
+{"id":"math-008","prompt":"What is 18 / 3?","task_type":"math","reference_answer":"6"}
+{"id":"math-009","prompt":"What is 4 * 5?","task_type":"math","reference_answer":"20"}
+{"id":"math-010","prompt":"What is 21 - 8?","task_type":"math","reference_answer":"13"}
