@@ -30,6 +30,7 @@ real = [
 
 [project.scripts]
 nano-verl-toy = "nano_verl.main:main"
+nano-verl-native = "nano_verl.train_native:main"
 nano-verl-grpo = "nano_verl.train_grpo:main"
 
 [tool.setuptools.packages.find]

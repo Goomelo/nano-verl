@@ -6,7 +6,7 @@ It is not a reimplementation of full `verl`. The goal is narrower:
 
 - make the core stages visible
 - keep the code local-first and hackable
-- provide one toy pipeline and one real training entrypoint
+- provide one toy pipeline and one native training engine
 - stay structured enough to evolve in public on GitHub
 
 ## What This Repo Contains
@@ -17,9 +17,12 @@ Two paths live in the same repository:
    A toy pipeline that makes the stages explicit:
    `prompt -> rollout -> reward -> select -> update -> eval`
 
-2. `accelerate launch -m nano_verl.train_grpo`
-   A real GRPO-oriented training entrypoint built around `TRL`, with optional `PEFT/QLoRA`
-   and optional `vLLM` generation acceleration.
+2. `python -m nano_verl.train_native`
+   A native single-process GRPO-like learning engine that owns its own
+   `sample -> reward -> reference KL penalty -> old-policy ratio objective -> update` loop.
+
+3. `accelerate launch -m nano_verl.train_grpo`
+   A secondary integration path built around `TRL`, kept for comparison and experimentation.
 
 ## Why This Exists
 
@@ -37,21 +40,22 @@ This repo is intentionally smaller. It focuses on:
 Implemented today:
 
 - toy post-training pipeline with metrics and evaluation
+- native single-process GRPO-like training engine with frozen reference-model and old-policy anchors
 - typed prompt / rollout / reward / selection data structures
 - mock rollout backend
 - `vLLM` server rollout adapter
-- real GRPO entrypoint using `TRL`
+- `TRL`-based GRPO entrypoint for comparison
 - backend separation for rollout and training concerns
 - stage-by-stage dataflow trace for learning
 - `Megatron` backend stub with a clear boundary, not a fake implementation
 
 Not implemented yet:
 
-- native PPO / GRPO training loop
 - distributed actor / rollout / reward workers
 - critic / reference model / KL controller stack
 - real Megatron training backend
 - cluster orchestration comparable to `verl`
+- a more faithful PPO / KL-controlled RL loop
 
 ## Repository Layout
 
@@ -60,8 +64,10 @@ Not implemented yet:
 ├── data/
 ├── nano_verl/
 │   ├── backends/
+│   ├── native/
 │   ├── trainer/
 │   ├── main.py
+│   ├── train_native.py
 │   └── train_grpo.py
 ├── scripts/
 ├── tests/
@@ -77,13 +83,19 @@ Not implemented yet:
 
 Start here if you want to learn the codebase:
 
-1. `nano_verl/trainer/dataflow.py`
-2. `nano_verl/trainer/config.py`
-3. `nano_verl/trainer/dataset.py`
-4. `nano_verl/trainer/actor.py`
-5. `nano_verl/trainer/rewards.py`
-6. `nano_verl/trainer/backends.py`
-7. `nano_verl/trainer/orchestrator.py`
+1. `nano_verl/native/grpo.py`
+2. `nano_verl/native/policy.py`
+3. `nano_verl/native/trainer.py`
+4. `nano_verl/train_native.py`
+
+Native engine modules:
+
+- `nano_verl/native/config.py`
+- `nano_verl/native/data.py`
+- `nano_verl/native/rewards.py`
+- `nano_verl/native/grpo.py`
+- `nano_verl/native/policy.py`
+- `nano_verl/native/trainer.py`
 
 Toy pipeline modules:
 
@@ -115,13 +127,64 @@ pip install -e ".[dev]"
 python -m nano_verl.main --num-samples 4 --strategy best_of_n
 ```
 
-### 3. Run tests
+### 3. Run the native GRPO-like engine
+
+```bash
+python -m nano_verl.train_native \
+  --model-name Qwen/Qwen2.5-0.5B-Instruct \
+  --train-data data/grpo_math_train.jsonl \
+  --eval-data data/grpo_math_eval.jsonl \
+  --output-dir outputs/native-grpo-demo \
+  --steps 20
+```
+
+This run now writes:
+
+- `outputs/native-grpo-demo/run_config.json`
+- `outputs/native-grpo-demo/metrics.jsonl`
+- `outputs/native-grpo-demo/benchmark_summary.json`
+- `outputs/native-grpo-demo/benchmark_report.md`
+
+### 4. Run tests
 
 ```bash
 python3 -m unittest discover -s tests
 ```
 
-## Real Training Setup
+## Native Engine
+
+The native path is the main learning-oriented training engine in this repository.
+
+Its core loop is:
+
+```text
+prompt batch
+  -> sample multiple completions per prompt
+  -> score completions with rule rewards
+  -> score the same completions under a frozen reference model
+  -> apply reward shaping with a KL penalty
+  -> normalize rewards inside each prompt group
+  -> compare against an old policy snapshot with a clipped ratio objective
+  -> update the policy
+  -> periodically evaluate and save
+```
+
+This path is intentionally small and honest:
+
+- it is native and readable
+- it is single-process and local-first
+- it includes a reference-model KL anchor
+- it includes an old-policy ratio/clipping objective
+- it is still GRPO-like, not a full verl-equivalent runtime
+- it is meant to teach the mechanics, not maximize throughput
+
+The native engine now produces persistent run artifacts:
+
+- `metrics.jsonl` for step-by-step training curves
+- `benchmark_summary.json` for machine-readable run summaries
+- `benchmark_report.md` for a human-readable experiment report
+
+## TRL Integration Path
 
 Install the heavier dependencies only when you want the GRPO path:
 
@@ -168,6 +231,7 @@ You can also use the helper scripts in `scripts/`.
 make test
 make compile
 make toy
+make native-help
 ```
 
 ## Project Direction

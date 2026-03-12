@@ -3,6 +3,7 @@
 ## Near Term
 
 - add persisted run traces to `outputs/`
+- improve the native GRPO-like engine with richer logging and checkpoint metadata
 - add more non-math reward examples
 - add a small benchmark/eval report format
 - improve `vLLM` backend validation and error reporting
@@ -10,7 +11,6 @@
 
 ## Mid Term
 
-- implement a native single-process GRPO loop for learning purposes
 - add a reference-model path and KL accounting
 - add richer training metrics and checkpoint metadata
 - support local multi-GPU experiments
@@ -21,4 +21,3 @@
 - real Megatron training backend
 - more algorithms beyond the current GRPO-oriented path
 - closer alignment with `verl` concepts while staying readable
-
